@@ -452,11 +452,25 @@ function resetGenre(){bgGenre='';moodGenre='';document.querySelectorAll('.gtag')
 function changeCast(d){castCount=Math.min(20,Math.max(2,castCount+d));const el=document.getElementById('cast-v');if(el)el.textContent=castCount;}
 function selAct(el,n){document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');actCount=n;}
 
-async function callGemini(prompt){
+async function callGemini(prompt, attempt=0){
   const key=settings.apiKey;
   if(!key)throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
+  const MAX_RETRIES=3; // 최대 3번 재시도 (총 4번 시도)
   const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key.trim()}`;
-  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:4000}})});
+  let res=null, networkErr=null;
+  try{
+    res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:4000}})});
+  }catch(e){ networkErr=e; }
+  // 429(요청 과다), 503(서버 과부하), 500(일시적 서버 오류)는 재시도할 가치가 있어요
+  const retriable = networkErr || res.status===429 || res.status===503 || res.status===500;
+  if(retriable && attempt<MAX_RETRIES){
+    const waitMs = 800*Math.pow(2,attempt) + Math.random()*400; // 지수 백오프 + 약간의 지터
+    const pm=document.getElementById('prog-msg');
+    if(pm) pm.textContent = `서버가 잠시 혼잡해요, 자동으로 다시 시도할게요... (${attempt+1}/${MAX_RETRIES})`;
+    await new Promise(r=>setTimeout(r,waitMs));
+    return callGemini(prompt, attempt+1);
+  }
+  if(networkErr) throw new Error('네트워크 오류가 계속돼요: '+networkErr.message);
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`오류 ${res.status}`);}
   const data=await res.json();return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
 }

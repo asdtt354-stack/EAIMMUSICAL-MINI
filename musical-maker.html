@@ -525,9 +525,10 @@ JSON만 응답:
 {"title":"뮤지컬 제목","characters":["이름(역할)" ${castCount}명 배열],"synopsis":"줄거리 2-3문장","acts":[{"actNum":1,"title":"막제목","summary":"내용 1문장","emotion":"감정"}]}`);
     const struct=parseJSON(s1),charsStr=struct.characters.join(', ');
     setStep(2,'오프닝 코러스 작성 중...');
-    const s2=await callGemini(`뮤지컬 "${struct.title}" 오프닝 코러스.
+    const s2=await callGemini(`뮤지컬 "${struct.title}" 오프닝 장면.
 줄거리:${struct.synopsis} | 인물:${charsStr} | 장르:${genre}
-JSON만:{"songTitle":"넘버제목","lyrics":"가사 4-6줄(줄바꿈)","sunoPrompt":"영문 Suno 프롬프트(50단어이내)","bgPrompt":"영문 배경이미지 프롬프트, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
+이 장면은 노래로 시작하기 전에 짧은 대사 장면이 있고, 그다음 오프닝 코러스로 이어집니다.
+JSON만:{"dialogue":"무대 지시문과 등장인물 대사. 형식은 줄바꿈으로 구분하고, 지문은 (지문) 형태로, 대사는 '이름: 대사' 형태로 8~12줄 작성. 중학생이 연기하기 자연스러운 구어체로.","songTitle":"넘버제목","lyrics":"가사 4-6줄(줄바꿈)","sunoPrompt":"영문 Suno 프롬프트(50단어이내)","bgPrompt":"영문 배경이미지 프롬프트, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
     const opening=parseJSON(s2);
     setStep(3,'장면 작성 중...');
     const scenes=[];
@@ -535,13 +536,14 @@ JSON만:{"songTitle":"넘버제목","lyrics":"가사 4-6줄(줄바꿈)","sunoPro
       setStep(3,`${act.actNum}막 "${act.title}" 작성 중...`);
       const sn=await callGemini(`뮤지컬 "${struct.title}" ${act.actNum}막.
 내용:${act.summary} | 감정:${act.emotion} | 인물:${charsStr}
-JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","lyrics":"가사 4-6줄","characters":"등장인물","sunoPrompt":"영문 Suno(50단어이내)","bgPrompt":"영문 배경이미지, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","emotion":"${act.emotion}","mood":"분위기 한국어"}`);
+이 막은 대사 장면으로 사건이 전개되다가 감정이 고조되는 지점에서 노래로 이어집니다.
+JSON만:{"sceneTitle":"${act.title}","dialogue":"무대 지시문과 등장인물 대사. 형식은 줄바꿈으로 구분하고, 지문은 (지문) 형태로, 대사는 '이름: 대사' 형태로 10~16줄 작성. 사건 전개와 인물 간 갈등·대화가 드러나게, 중학생이 연기하기 자연스러운 구어체로.","songTitle":"넘버제목","lyrics":"가사 4-6줄","characters":"등장인물","sunoPrompt":"영문 Suno(50단어이내)","bgPrompt":"영문 배경이미지, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","emotion":"${act.emotion}","mood":"분위기 한국어"}`);
       scenes.push(parseJSON(sn));
     }
     setStep(4,'커튼콜 작성 중...');
     const s4=await callGemini(`뮤지컬 "${struct.title}" 커튼콜.
-오프닝가사:${opening.lyrics} | 줄거리:${struct.synopsis}
-JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
+오프닝가사:${opening.lyrics} | 줄거리:${struct.synopsis} | 인물:${charsStr}
+JSON만:{"dialogue":"막이 내리기 직전 짧은 마무리 대사나 전체 인사말. (지문)과 '이름: 대사' 형태로 4~8줄.","songTitle":"커튼콜 제목(Reprise가능)","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
     const curtain=parseJSON(s4);
     setStep(5,'완성 정리 중...');
     generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain};
@@ -573,9 +575,9 @@ function buildFullText(d){
   if(!d)return'';
   let t=`${'═'.repeat(48)}\n  ${(d.title||'').toUpperCase()}\n  ${d.genre}\n${'═'.repeat(48)}\n\n`;
   t+=`📖 줄거리\n${d.synopsis}\n\n👥 등장인물\n  ${(d.characters||[]).join('\n  ')}\n\n`;
-  t+=`【 오프닝 코러스 】\n${'─'.repeat(36)}\n♪ ${d.opening.songTitle}\n\n${d.opening.lyrics}\n\n[Suno] ${d.opening.sunoPrompt}\n[BG] ${d.opening.bgPrompt}\n\n`;
-  (d.scenes||[]).forEach((s,i)=>{t+=`【 ${i+1}막: ${s.sceneTitle} 】\n${'─'.repeat(36)}\n등장: ${s.characters}\n♪ ${s.songTitle}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;});
-  t+=`【 커튼콜 】\n${'─'.repeat(36)}\n♪ ${d.curtain.songTitle}\n\n${d.curtain.lyrics}\n\n[Suno] ${d.curtain.sunoPrompt}\n[BG] ${d.curtain.bgPrompt}`;
+  t+=`【 오프닝 】\n${'─'.repeat(36)}\n${d.opening.dialogue?d.opening.dialogue+'\n\n':''}♪ ${d.opening.songTitle}\n\n${d.opening.lyrics}\n\n[Suno] ${d.opening.sunoPrompt}\n[BG] ${d.opening.bgPrompt}\n\n`;
+  (d.scenes||[]).forEach((s,i)=>{t+=`【 ${i+1}막: ${s.sceneTitle} 】\n${'─'.repeat(36)}\n등장: ${s.characters}\n\n${s.dialogue?s.dialogue+'\n\n':''}♪ ${s.songTitle}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;});
+  t+=`【 커튼콜 】\n${'─'.repeat(36)}\n${d.curtain.dialogue?d.curtain.dialogue+'\n\n':''}♪ ${d.curtain.songTitle}\n\n${d.curtain.lyrics}\n\n[Suno] ${d.curtain.sunoPrompt}\n[BG] ${d.curtain.bgPrompt}`;
   return t;
 }
 
@@ -613,7 +615,9 @@ function renderSceneCard(id,label,tagClass,icon,data,idx){
       <span style="color:rgba(255,255,255,.25);font-size:.72rem" id="arr-${id}">▲</span>
     </div>
     <div class="scene-body" id="body-${id}">
-      <div class="edit-label">가사</div>
+      <div class="edit-label">💬 대사 · 지문</div>
+      <textarea class="edit-box" id="dialogue-${id}" rows="8" placeholder="(무대 지시문)&#10;이름: 대사...">${data.dialogue||''}</textarea>
+      <div class="edit-label" style="margin-top:14px">🎵 노래 가사</div>
       <textarea class="edit-box" id="lyrics-${id}" rows="6">${data.lyrics||''}</textarea>
       <div class="prompt-grid">
         <div class="prompt-box">
@@ -655,9 +659,9 @@ function scheduleAutoSave(){
 function collectEdits(){
   if(!generatedData)return;
   const getVal=id=>document.getElementById(id)?.value||'';
-  generatedData.opening.lyrics=getVal('lyrics-opening');generatedData.opening.sunoPrompt=getVal('suno-opening');generatedData.opening.bgPrompt=getVal('bg-opening');
-  (generatedData.scenes||[]).forEach((_,i)=>{generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);});
-  generatedData.curtain.lyrics=getVal('lyrics-curtain');generatedData.curtain.sunoPrompt=getVal('suno-curtain');generatedData.curtain.bgPrompt=getVal('bg-curtain');
+  generatedData.opening.dialogue=getVal('dialogue-opening');generatedData.opening.lyrics=getVal('lyrics-opening');generatedData.opening.sunoPrompt=getVal('suno-opening');generatedData.opening.bgPrompt=getVal('bg-opening');
+  (generatedData.scenes||[]).forEach((_,i)=>{generatedData.scenes[i].dialogue=getVal(`dialogue-scene-${i}`);generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);});
+  generatedData.curtain.dialogue=getVal('dialogue-curtain');generatedData.curtain.lyrics=getVal('lyrics-curtain');generatedData.curtain.sunoPrompt=getVal('suno-curtain');generatedData.curtain.bgPrompt=getVal('bg-curtain');
 }
 
 function downloadAll(){

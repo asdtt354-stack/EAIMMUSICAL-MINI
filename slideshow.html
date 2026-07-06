@@ -120,7 +120,7 @@ select.bubble-ctrl-btn{padding:5px 8px}
 #subtitle-bar{position:absolute;bottom:56px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:10px 28px;border-radius:8px;font-size:clamp(14px,2.2vw,20px);font-weight:600;text-align:center;max-width:80%;z-index:30;text-shadow:0 2px 8px rgba(0,0,0,.8);display:none;letter-spacing:.5px;border:1px solid rgba(255,255,255,.12);cursor:pointer}
 #signal-indicator{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:600;padding:7px 18px;border-radius:24px;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);border:1px solid rgba(105,240,174,.5);color:#69f0ae;font-size:11px;letter-spacing:2px;display:none;align-items:center;gap:8px;animation:signalPop .4s ease}
 
-#char-panel{position:fixed;bottom:80px;right:16px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:12px;display:none;z-index:200;width:230px}
+#char-panel{position:fixed;bottom:80px;right:16px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:12px;display:none;z-index:200;width:250px}
 #char-panel.show{display:block}
 #char-panel h4{font-size:11px;color:rgba(255,255,255,.5);letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}
 #char-url-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;outline:none;margin-bottom:6px;font-family:inherit}
@@ -129,7 +129,7 @@ select.bubble-ctrl-btn{padding:5px 8px}
 .char-panel-btn.remove{background:rgba(255,82,82,.15);border-color:rgba(255,82,82,.4);color:#ff5252}
 .char-panel-btn.anim{background:rgba(255,213,79,.1);border-color:rgba(255,213,79,.3);color:#ffd54f}
 
-#char-anim-panel{position:fixed;bottom:80px;right:260px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;display:none;z-index:200;width:220px}
+#char-anim-panel{position:fixed;bottom:80px;right:280px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;display:none;z-index:200;width:220px}
 #char-anim-panel.show{display:block}
 #char-anim-panel h4{font-size:11px;color:rgba(255,255,255,.5);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
 .anim-section{margin-bottom:10px}
@@ -225,13 +225,25 @@ select.bubble-ctrl-btn{padding:5px 8px}
 
 <div id="char-panel">
   <h4>🎭 캐릭터 레이어</h4>
-  <input id="char-url-input" placeholder="캐릭터 이미지 URL">
   <select id="char-position-select">
     <option value="right">오른쪽</option>
     <option value="left">왼쪽</option>
     <option value="center">가운데</option>
   </select>
-  <button class="char-panel-btn" onclick="applyCharLayer()">✓ 적용</button>
+
+  <input type="file" id="char-file-input" accept="image/*" style="display:none" onchange="handleCharFileUpload(event)">
+  <button class="char-panel-btn" onclick="document.getElementById('char-file-input').click()">📁 내 사진 올리기</button>
+
+  <div style="font-size:10px;color:rgba(255,255,255,.3);text-align:center;margin:8px 0">─ 또는 ─</div>
+
+  <textarea id="char-ai-prompt" placeholder="예: 갈색 단발머리 소녀, 교복, 웃는 표정" style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;outline:none;margin-bottom:6px;font-family:inherit;resize:vertical;min-height:44px"></textarea>
+  <button class="char-panel-btn anim" id="btn-char-ai-gen" onclick="generateCharacterAI()">✨ AI로 캐릭터 생성</button>
+
+  <div style="font-size:10px;color:rgba(255,255,255,.3);text-align:center;margin:8px 0">─ 또는 링크 붙여넣기 ─</div>
+  <input id="char-url-input" placeholder="캐릭터 이미지 URL">
+  <button class="char-panel-btn" onclick="applyCharLayer()">✓ 링크로 적용</button>
+
+  <div style="height:1px;background:rgba(255,255,255,.1);margin:8px 0"></div>
   <button class="char-panel-btn remove" onclick="removeCharLayer()">✕ 캐릭터 제거</button>
   <button class="char-panel-btn anim" onclick="toggleAnimPanel()">🎬 애니메이션</button>
   <button class="char-panel-btn" onclick="toggleCharPanel()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.3)">닫기</button>
@@ -474,20 +486,55 @@ function toggleCharPanel() {
   panel.classList.toggle('show');
   document.getElementById('btn-char').style.color = panel.classList.contains('show') ? '#FFD700' : 'rgba(255,255,255,.8)';
 }
-function applyCharLayer() {
-  const url = document.getElementById('char-url-input').value.trim();
-  if (!url) { showToast('⚠️ 캐릭터 이미지 URL을 입력해주세요'); return; }
+function applyCharLayerFromSrc(src) {
   const pos = document.getElementById('char-position-select').value;
   const slide = getCurrentSlideEl(); if (!slide) return;
   slide.querySelectorAll('.char-layer').forEach(c => c.remove());
   const img = document.createElement('img');
   img.className = `char-layer ${pos}`;
-  img.src = url; img.alt = '캐릭터';
+  img.src = src; img.alt = '캐릭터';
   img.onerror = () => { img.style.display='none'; showToast('⚠️ 이미지를 불러올 수 없어요'); };
   const container = slide.querySelector('.parallax-container');
   if (container) container.appendChild(img); else slide.appendChild(img);
+}
+function applyCharLayer() {
+  const url = document.getElementById('char-url-input').value.trim();
+  if (!url) { showToast('⚠️ 캐릭터 이미지 URL을 입력해주세요'); return; }
+  applyCharLayerFromSrc(url);
   document.getElementById('char-url-input').value = '';
   showToast('✅ 캐릭터 추가됨!');
+}
+function handleCharFileUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { applyCharLayerFromSrc(reader.result); showToast('✅ 사진이 캐릭터로 추가됐어요!'); };
+  reader.onerror = () => showToast('⚠️ 파일을 읽을 수 없어요');
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+async function generateCharacterAI() {
+  const promptText = document.getElementById('char-ai-prompt').value.trim();
+  if (!promptText) { showToast('⚠️ 캐릭터 설명을 입력해주세요'); return; }
+  if (!GEMINI_KEY) { showToast('⚠️ Gemini API 키가 필요해요 (우측 상단 배지를 눌러 설정)'); return; }
+  const btn = document.getElementById('btn-char-ai-gen');
+  btn.disabled = true; btn.textContent = '생성 중...';
+  try {
+    const fullPrompt = `${promptText}, full body character illustration, isolated on a plain flat white background, no scenery, no ground shadow, clean cutout style, front facing, 2.5D semi-realistic illustration style`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_KEY}`;
+    const res = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}})});
+    if (!res.ok) throw new Error('Gemini '+res.status);
+    const data = await res.json();
+    const imgPart = (data?.candidates?.[0]?.content?.parts||[]).find(p=>p.inlineData);
+    if (!imgPart) throw new Error('이미지 없음');
+    const dataUrl = `data:${imgPart.inlineData.mimeType};base64,${imgPart.inlineData.data}`;
+    applyCharLayerFromSrc(dataUrl);
+    showToast('✨ AI 캐릭터 생성 완료!');
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 캐릭터 생성 실패 — 다시 시도해주세요');
+  }
+  btn.disabled = false; btn.textContent = '✨ AI로 캐릭터 생성';
 }
 function removeCharLayer() {
   const slide = getCurrentSlideEl(); if (!slide) return;

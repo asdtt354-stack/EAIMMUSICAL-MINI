@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎭 뮤지컬메이커 | EAIM</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0810;--gold:#d4a843;--gold2:#f0c96a;
+  --purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;
+  --green:#52c27a;--red:#ef4444;
+  --text:#f0e8ff;--sub:#9a8aaa;
+  --border:rgba(212,168,67,0.15);--card:rgba(255,255,255,0.04);
+}
+body{font-family:'Noto Serif KR',serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse at 20% 0%,rgba(124,58,237,0.15) 0%,transparent 50%),
+  radial-gradient(ellipse at 80% 100%,rgba(93,173,226,0.1) 0%,transparent 50%);}
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.login-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:36px 28px;width:100%;max-width:400px;}
+.login-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:var(--gold);text-align:center;margin-bottom:4px;text-shadow:0 0 30px rgba(212,168,67,0.4);}
+.login-sub{font-size:0.68rem;color:var(--sub);text-align:center;letter-spacing:0.25em;margin-bottom:28px;}
+.login-tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:10px;padding:4px;margin-bottom:22px;gap:4px;}
+.login-tab{flex:1;padding:10px;border-radius:7px;font-size:0.85rem;font-weight:700;cursor:pointer;text-align:center;border:none;font-family:inherit;background:none;color:var(--sub);transition:all .2s;}
+.login-tab.on{background:rgba(212,168,67,0.15);color:var(--gold);}
+.field-label{font-size:0.7rem;color:var(--sub);margin-bottom:6px;letter-spacing:.1em;}
+.t-input{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:10px;width:100%;padding:12px 14px;font-size:0.9rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:10px;}
+.t-input:focus{border-color:var(--gold);}
+.t-input::placeholder{color:rgba(255,255,255,0.2);}
+.main-btn{background:linear-gradient(135deg,#d4a843,#e8a020);color:#000;border:none;border-radius:12px;font-weight:900;font-size:1rem;padding:15px;width:100%;cursor:pointer;transition:all .2s;font-family:inherit;margin-top:4px;}
+.main-btn:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(212,168,67,0.4);}
+.main-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.err-msg{font-size:.72rem;color:#fca5a5;margin-bottom:8px;min-height:18px;}
+.notice-box{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;}
+.app-header{background:linear-gradient(180deg,#3d0a14 0%,#5c1121 60%,transparent 100%);border-bottom:2px solid var(--gold);padding:14px 20px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
+.header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.logo-t{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:var(--gold);}
+.header-right{display:flex;align-items:center;gap:10px;}
+.mode-badge{font-size:.6rem;padding:3px 10px;border-radius:10px;font-weight:700;letter-spacing:.1em;}
+.badge-teacher{background:rgba(212,168,67,0.2);color:var(--gold);border:1px solid rgba(212,168,67,0.4);}
+.badge-student{background:rgba(82,194,122,0.2);color:#86efac;border:1px solid rgba(82,194,122,0.4);}
+.logout-btn{font-size:.62rem;color:rgba(255,255,255,.3);background:none;border:none;cursor:pointer;}
+.tab-bar{display:flex;background:rgba(0,0,0,0.4);border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:58px;z-index:90;}
+.tab-btn{flex:1;padding:11px 4px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.35);font-family:inherit;transition:all .2s;border-bottom:2px solid transparent;}
+.tab-btn.on{color:var(--gold);border-bottom-color:var(--gold);}
+.badge-count{background:rgba(212,168,67,0.2);color:var(--gold);border-radius:8px;padding:1px 6px;font-size:.62rem;margin-left:4px;}
+main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;}
+.card-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.api-badge{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(212,168,67,0.2);border-radius:10px;padding:10px 14px;}
+.api-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-on{background:var(--green);box-shadow:0 0 6px var(--green);}
+.dot-off{background:rgba(255,255,255,.2);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(0,0,0,0.25);border-radius:10px;border:1px solid rgba(255,255,255,.08);}
+.toggle-track{width:50px;height:26px;border-radius:13px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
+.toggle-track.on{background:rgba(82,194,122,0.5);border:1px solid var(--green);}
+.toggle-thumb{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.4);position:absolute;top:3px;left:3px;transition:all .3s;}
+.toggle-track.on .toggle-thumb{left:27px;background:var(--green);box-shadow:0 0 6px var(--green);}
+.genre-step{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;margin-bottom:8px;}
+.genre-step-lbl{font-size:.68rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.step-badge{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;}
+.sb1{background:rgba(212,168,67,0.25);color:var(--gold);}
+.sb2{background:rgba(199,120,221,0.25);color:var(--pink);}
+.genre-tags{display:flex;flex-wrap:wrap;gap:7px;}
+.gtag{padding:7px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--sub);transition:all .2s;user-select:none;}
+.gtag:hover{border-color:var(--gold);color:var(--gold);}
+.gtag.on-bg{background:rgba(212,168,67,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
+.gtag.on-mood{background:rgba(199,120,221,0.15);border-color:var(--pink);color:var(--pink);font-weight:700;}
+.genre-summary{display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:rgba(82,194,122,0.06);border:1px solid rgba(82,194,122,.2);border-radius:8px;font-size:.78rem;color:var(--green);}
+.genre-summary.show{display:flex;}
+.counter-wrap{display:flex;align-items:center;gap:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden;width:fit-content;}
+.c-btn{width:44px;height:46px;border:none;cursor:pointer;background:rgba(255,255,255,.06);color:var(--text);font-size:1.3rem;font-family:inherit;transition:background .2s;display:flex;align-items:center;justify-content:center;}
+.c-btn:hover{background:rgba(212,168,67,0.2);color:var(--gold);}
+.c-val{min-width:70px;text-align:center;font-size:1.6rem;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;border-left:1px solid rgba(255,255,255,.08);border-right:1px solid rgba(255,255,255,.08);line-height:46px;}
+.act-btns{display:flex;gap:8px;}
+.act-btn{flex:1;padding:10px;border-radius:8px;cursor:pointer;text-align:center;font-size:.85rem;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--sub);transition:all .2s;font-family:inherit;}
+.act-btn.on{background:rgba(212,168,67,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
+.gen-btn{width:100%;padding:17px;border-radius:12px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 30px rgba(124,58,237,0.4);transition:all .3s;margin-top:8px;}
+.gen-btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(124,58,237,0.5);}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.prog-card{background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);border-radius:14px;padding:28px;text-align:center;display:none;}
+.prog-card.show{display:block;}
+.prog-steps{display:flex;flex-direction:column;gap:10px;max-width:400px;margin:16px auto;}
+.prog-step{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;background:rgba(255,255,255,.04);font-size:.85rem;color:var(--sub);transition:all .4s;}
+.prog-step.active{background:rgba(212,168,67,0.1);color:var(--gold);border:1px solid rgba(212,168,67,0.2);}
+.prog-step.done{background:rgba(82,194,122,0.08);color:var(--green);}
+.sicon{font-size:1rem;width:22px;text-align:center;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result-wrap{display:none;}
+.result-wrap.show{display:block;}
+.r-header{text-align:center;padding:20px 0 16px;}
+.r-title{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:var(--gold);text-shadow:0 0 20px rgba(212,168,67,0.3);}
+.r-sub{font-size:.75rem;color:var(--sub);letter-spacing:.15em;margin-top:6px;}
+.scene-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden;}
+.scene-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;transition:background .2s;border-bottom:1px solid transparent;}
+.scene-header:hover{background:rgba(255,255,255,.03);}
+.scene-header.open{border-bottom-color:rgba(255,255,255,.07);}
+.scene-tag{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;padding:3px 10px;border-radius:10px;font-weight:700;}
+.tag-opening{background:rgba(212,168,67,0.15);color:var(--gold);border:1px solid rgba(212,168,67,0.3);}
+.tag-scene{background:rgba(93,173,226,0.15);color:var(--blue);border:1px solid rgba(93,173,226,0.3);}
+.tag-curtain{background:rgba(199,120,221,0.15);color:var(--pink);border:1px solid rgba(199,120,221,0.3);}
+.scene-body{padding:18px;}
+.edit-label{font-size:.68rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;margin-top:14px;}
+.edit-label:first-child{margin-top:0;}
+.edit-box{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;color:var(--text);font-size:.88rem;font-family:'Noto Serif KR',serif;line-height:1.8;width:100%;outline:none;resize:vertical;transition:border-color .2s;min-height:80px;}
+.edit-box:focus{border-color:var(--gold);}
+.prompt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+@media(max-width:580px){.prompt-grid{grid-template-columns:1fr;}}
+.prompt-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;}
+.prompt-label{font-size:.65rem;color:var(--pink);letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;}
+.prompt-text{font-size:.75rem;color:var(--sub);line-height:1.6;font-family:monospace;width:100%;background:none;border:none;outline:none;resize:none;}
+.save-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(82,194,122,0.06);border:1px solid rgba(82,194,122,.2);border-radius:10px;margin-bottom:14px;font-size:.75rem;}
+.save-status{display:flex;align-items:center;gap:6px;color:var(--green);}
+.save-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.btn-sec{padding:13px 18px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--sub);font-size:.88rem;font-family:inherit;transition:all .2s;}
+.btn-sec:hover{background:rgba(255,255,255,.12);color:var(--text);}
+.btn-regen{padding:13px 18px;border-radius:10px;cursor:pointer;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);color:var(--pink);font-size:.88rem;font-family:inherit;}
+.btn-slide{flex:2;padding:15px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;font-weight:800;font-size:1rem;font-family:inherit;box-shadow:0 4px 24px rgba(199,120,221,0.35);}
+.btn-dl{flex:1;padding:13px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--blue),#1B4F72);color:#fff;font-weight:700;font-size:.88rem;font-family:inherit;}
+.work-card{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s;}
+.work-card:hover{border-color:rgba(212,168,67,.25);}
+.work-card.approved{border-left:3px solid var(--green);}
+.w-title{font-weight:700;font-size:.95rem;color:var(--gold);}
+.w-meta{font-size:.68rem;color:rgba(255,255,255,.3);margin-top:3px;}
+.w-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.w-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;font-size:.72rem;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);font-family:inherit;transition:all .2s;}
+.w-btn:hover{background:rgba(255,255,255,.12);color:var(--text);}
+.w-btn.approve-on{border-color:var(--green);color:var(--green);}
+.w-btn.danger{border-color:rgba(239,68,68,.3);color:#fca5a5;background:rgba(239,68,68,.08);}
+.w-preview{margin-top:10px;padding:12px;background:rgba(0,0,0,.3);border-radius:8px;font-size:.78rem;color:rgba(255,255,255,.55);line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:'Noto Serif KR',serif;display:none;}
+.chpw-form{display:flex;flex-direction:column;gap:8px;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(212,168,67,.25);border-radius:2px;}
+.fade-in{animation:fadeIn .35s ease-out;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:.82rem;background:rgba(82,194,122,0.9);color:#000;display:none;pointer-events:none;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:580px){.row2{grid-template-columns:1fr;}}
+.loading-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:.85rem;letter-spacing:.1em;}
+.platform-note{font-size:.62rem;color:rgba(255,255,255,.25);text-align:center;margin-top:10px;line-height:1.6;}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:none;border-radius:12px;font-weight:700;font-size:.95rem;padding:14px;width:100%;cursor:pointer;transition:all .2s;font-family:inherit;}
+.google-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,0.25);transform:translateY(-1px);}
+.google-icon{width:20px;height:20px;flex-shrink:0;}
+.teacher-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;margin-bottom:16px;}
+.teacher-avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;}
+.invite-box{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;font-size:.72rem;color:var(--sub);word-break:break-all;font-family:monospace;margin-top:8px;}
+.no-teacher-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toast"></div>
+<script>
+'use strict';
+const LS = {
+  get:(k,d=null)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+};
+const SESSION='mm_session',DRAFT_KEY='mm_draft',WORKS_CACHE='mm_works_cache',SETTINGS_CACHE='mm_settings_cache';
+
+// ══════════════════════════
+// 🔥 Firebase 설정 — 플랫폼의 모든 앱과 동일한 값을 넣어주세요.
+// ══════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBaLg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",
+  authDomain: "eaim-classroom.firebaseapp.com",
+  projectId: "eaim-classroom",
+  storageBucket: "eaim-classroom.firebasestorage.app",
+  messagingSenderId: "294479576192",
+  appId: "1:294479576192:web:c60e994e319dbd2f11ba65"
+};
+let db = null, auth = null, firebaseReady = false;
+try {
+  if (!firebaseConfig.apiKey.startsWith('여기에')) {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    firebaseReady = true;
+  }
+} catch(e) { console.error('Firebase 초기화 실패', e); }
+
+// ══════════════════════════
+// 👩‍🏫 선생님별 데이터 분리 구조: teachers/{uid}/...
+// ══════════════════════════
+const teacherDoc = (uid) => db.collection('teachers').doc(uid);
+const settingsDoc = (uid) => teacherDoc(uid).collection('meta').doc('settings');
+const worksCol = (uid) => teacherDoc(uid).collection('works');
+
+let authLoaded = false, currentUser = null; // currentUser: 로그인한 선생님(Firebase Auth user)
+let teacherUid = null; // 지금 화면이 보고 있는 데이터의 소유자 uid (선생님 본인 uid 또는 학생이 접속한 링크의 teacher uid)
+let settings = LS.get(SETTINGS_CACHE, {apiKey:'', classOn:false});
+let works = LS.get(WORKS_CACHE, []);
+let unsubSettings = null, unsubWorks = null;
+
+function initAuth(cb){
+  if(!firebaseReady){ authLoaded = true; cb && cb(); return; }
+  auth.onAuthStateChanged(user=>{
+    currentUser = user;
+    authLoaded = true;
+    cb && cb();
+  });
+}
+
+function googleLogin(){
+  const err=document.getElementById('login-err');
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e=>{ if(err) err.textContent = '로그인 실패: '+e.message; });
+}
+
+function teacherLogout(){
+  if(unsubSettings){unsubSettings();unsubSettings=null;}
+  if(unsubWorks){unsubWorks();unsubWorks=null;}
+  if(firebaseReady) auth.signOut();
+  session=null;LS.set(SESSION,null);teacherUid=null;
+  render();
+}
+
+function studentLogout(){
+  if(unsubSettings){unsubSettings();unsubSettings=null;}
+  session=null;LS.set(SESSION,null);
+  render();
+}
+
+function subscribeSettings(uid, cb){
+  if(unsubSettings) unsubSettings();
+  if(!firebaseReady){ cb && cb(); return; }
+  unsubSettings = settingsDoc(uid).onSnapshot(snap=>{
+    settings = snap.exists ? snap.data() : {apiKey:'', classOn:false};
+    LS.set(SETTINGS_CACHE, settings);
+    cb && cb();
+  }, err=>{ console.warn('설정 동기화 오류', err); cb && cb(); });
+}
+
+function setSettings(uid, fields){
+  settings = {...settings, ...fields}; LS.set(SETTINGS_CACHE, settings);
+  if(firebaseReady){
+    settingsDoc(uid).set(fields,{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
+  }
+}
+
+function subscribeWorks(uid){
+  if(unsubWorks) unsubWorks();
+  if(!firebaseReady) return;
+  unsubWorks = worksCol(uid).orderBy('createdAt','desc').onSnapshot(snap=>{
+    works = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    LS.set(WORKS_CACHE, works);
+    if(session==='teacher') renderDashContent();
+  }, err=>console.warn('결과물 동기화 오류', err));
+}
+
+const BG_GENRES=['🏫 학교','🏠 가정','🌿 자연·환경','🏯 역사','🚀 우주·미래','🏙️ 도시','🌊 바다·섬','🧚 마법세계'];
+const MOOD_GENRES=['✨ 판타지','🤝 우정','🌱 성장','😄 코미디','🗺️ 모험','💛 사랑·가족','🔍 미스터리','💪 도전·극복'];
+const DURATIONS=[{id:2,label:'2막'},{id:3,label:'3막'},{id:4,label:'4막'},{id:5,label:'5막'}];
+let session=LS.get(SESSION),studentName='',dashTab='settings',isStudentMode=false;
+let bgGenre='',moodGenre='',castCount=5,actCount=3,generatedData=null,autoSaveTimer=null;
+const root=document.getElementById('root');
+
+function render(){
+  if(!authLoaded){ renderLoading(); return; }
+  if(!session){ isStudentMode ? renderStudentLogin() : renderLogin(); return; }
+  if(session==='teacher'){renderTeacher();return;}
+  renderStudent();
+}
+
+function renderLoading(){
+  root.innerHTML=`<div class="loading-wrap fade-in">✦ 불러오는 중...</div>`;
+}
+
+function renderNoTeacherLink(){
+  root.innerHTML=`<div class="no-teacher-wrap fade-in"><div>
+    <div style="font-size:1.6rem;margin-bottom:10px">🔗</div>
+    <div style="font-size:.95rem;color:var(--text);margin-bottom:8px">선생님께 받은 초대 링크로 접속해주세요</div>
+    <div style="font-size:.75rem;color:var(--sub)">이 링크에는 우리 반 정보가 담겨 있어요</div>
+  </div></div>`;
+}
+
+function renderLogin(){
+  root.innerHTML=`<div class="login-wrap fade-in"><div class="login-box">
+    <a href="index.html" style="display:block;text-align:center;font-size:.7rem;color:rgba(255,255,255,.25);margin-bottom:16px;text-decoration:none;">← 허브로 돌아가기</a>
+    <div class="login-logo">🎭 EAIM 음악미디어</div><div class="login-sub">교사 로그인</div>
+    <div class="err-msg" id="login-err"></div>
+    ${firebaseReady?`<button class="google-btn" onclick="googleLogin()">
+      <svg class="google-icon" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 7.1 29.5 5 24 5 16.3 5 9.7 9.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.3 0 10.2-2 13.8-5.4l-6.4-5.4C29.3 34.9 26.8 35.8 24 35.8c-5.3 0-9.8-3.4-11.4-8.1l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.8l6.4 5.4C40.6 36.4 44 30.8 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      구글 계정으로 로그인
+    </button>
+    <div class="platform-note">학교 구글 계정으로 별도 가입 없이 바로 이용 가능해요</div>`
+    :`<div class="notice-box">Firebase 설정이 필요해요</div>`}
+  </div></div>`;
+}
+
+function renderTeacher(){
+  root.innerHTML=`<div class="app-header"><div class="header-inner">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="index.html" style="font-size:.7rem;color:rgba(255,255,255,.25);text-decoration:none;padding:4px 8px;border:1px solid rgba(255,255,255,.1);border-radius:6px;">🏠 허브</a>
+      <div class="logo-t">🎭 Musical Maker</div>
+    </div>
+    <div class="header-right"><span class="mode-badge badge-teacher">TEACHER</span><button class="logout-btn" onclick="teacherLogout()">로그아웃</button></div>
+  </div></div>
+  <div class="tab-bar">
+    <button class="tab-btn ${dashTab==='settings'?'on':''}" onclick="setDashTab('settings')">⚙️ 설정</button>
+    <button class="tab-btn ${dashTab==='works'?'on':''}" onclick="setDashTab('works')">📋 결과물${works.length?`<span class="badge-count">${works.length}</span>`:''}</button>
+  </div>
+  <main class="fade-in"><div id="dash-content"></div></main>`;
+  renderDashContent();
+}
+
+function setDashTab(tab){dashTab=tab;renderTeacher();}
+
+function renderDashContent(){
+  const el=document.getElementById('dash-content');if(!el)return;
+  if(dashTab==='settings'){
+    const inviteUrl = `${location.origin}${location.pathname}?role=student&teacher=${currentUser?.uid||''}`;
+    el.innerHTML=`
+    <div class="teacher-chip">
+      <img class="teacher-avatar" src="${currentUser?.photoURL||''}" onerror="this.style.display='none'">
+      <div style="font-size:.8rem;color:var(--text)">${currentUser?.displayName||''} · ${currentUser?.email||''}</div>
+    </div>
+    <div class="card"><div class="card-title">🎓 수업 상태</div>
+      <div class="toggle-row"><div><div style="font-weight:700;font-size:.95rem">${settings.classOn?'수업 진행 중':'수업 종료'}</div>
+        <div style="font-size:.72rem;color:var(--sub);margin-top:3px">${settings.classOn?'학생들이 접속할 수 있어요':'학생 접속이 차단됩니다'}</div></div>
+        <div class="toggle-track ${settings.classOn?'on':''}" onclick="toggleClass()"><div class="toggle-thumb"></div></div>
+      </div>
+      <div class="edit-label" style="margin-top:14px">학생 초대 링크</div>
+      <div class="invite-box" id="invite-url">${inviteUrl}</div>
+      <button class="btn-sec" style="margin-top:8px" onclick="copyInvite('${inviteUrl}')">🔗 링크 복사</button>
+    </div>
+    <div class="card"><div class="card-title">🔑 Gemini API 키</div>
+      <input class="t-input" type="password" id="api-input" value="${settings.apiKey||''}" placeholder="AIza... (학생에게 노출되지 않아요)" oninput="saveApi(this.value)">
+      ${settings.apiKey?`<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:#86efac;margin-top:4px"><div class="api-dot dot-on"></div>API 키 저장됨</div>`:''}
+    </div>
+    <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.15);border-radius:12px;padding:16px;font-size:.78rem;color:rgba(255,255,255,.45);line-height:1.9">
+      💡 <strong style="color:rgba(255,255,255,.65)">사용 순서</strong><br>1. API 키 입력 → 2. 수업 ON → 3. 초대 링크 공유<br>학생들은 이름만 입력하면 바로 대본 제작 가능해요.</div>`;
+  }else{
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:.75rem;color:var(--sub)">총 ${works.length}개의 결과물</div>
+      ${works.length?`<button class="w-btn danger" onclick="clearAllWorks()">전체 삭제</button>`:''}
+    </div>
+    ${works.length===0?`<div style="text-align:center;padding:50px 20px;color:rgba(255,255,255,.2)">아직 학생 결과물이 없어요 🎭</div>`:
+      works.map(w=>`<div class="work-card ${w.approved?'approved':''}" id="wc-${w.id}">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div style="width:7px;height:7px;border-radius:50%;margin-top:6px;flex-shrink:0;background:${w.approved?'var(--green)':'var(--gold)'};box-shadow:0 0 5px ${w.approved?'var(--green)':'var(--gold)'}"></div>
+          <div style="flex:1;min-width:0"><div class="w-title">${w.title||'(제목없음)'}</div>
+          <div class="w-meta">${w.student} · ${w.genre} · ${w.acts}막 · ${w.cast}명 · ${w.time}</div></div>
+        </div>
+        <div class="w-actions">
+          <button class="w-btn" onclick="toggleWPreview('${w.id}')">👁 미리보기</button>
+          <button class="w-btn ${w.approved?'approve-on':''}" onclick="approveWork('${w.id}')">✓ ${w.approved?'승인됨':'승인'}</button>
+          <button class="w-btn" onclick="downloadWork('${w.id}')">📥 다운로드</button>
+          <button class="w-btn danger" onclick="deleteWork('${w.id}')">삭제</button>
+        </div>
+        <div class="w-preview" id="wp-${w.id}">${w.preview||''}</div>
+      </div>`).join('')}`;
+  }
+}
+
+function toggleClass(){ toggleClass._busy=true; setSettings(currentUser.uid, {classOn: !settings.classOn}); renderDashContent(); }
+function saveApi(v){ setSettings(currentUser.uid, {apiKey: v}); }
+function copyInvite(url){ navigator.clipboard.writeText(url).then(()=>showToast('✅ 초대 링크 복사됨!')); }
+function toggleWPreview(id){const el=document.getElementById(`wp-${id}`);el.style.display=el.style.display==='block'?'none':'block';}
+function findWork(id){ return works.find(w=>String(w.id)===String(id)); }
+function approveWork(id){
+  const w=findWork(id); if(!w) return;
+  worksCol(currentUser.uid).doc(String(id)).set({approved:!w.approved},{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
+}
+function deleteWork(id){
+  if(!confirm('이 결과물을 삭제할까요?'))return;
+  worksCol(currentUser.uid).doc(String(id)).delete().catch(e=>showToast('❌ 삭제 실패: '+e.message));
+}
+async function clearAllWorks(){
+  if(!confirm('모든 결과물을 삭제할까요?'))return;
+  try{ const snap=await worksCol(currentUser.uid).get(); const batch=db.batch(); snap.docs.forEach(d=>batch.delete(d.ref)); await batch.commit(); }
+  catch(e){ showToast('❌ 삭제 실패: '+e.message); }
+}
+function downloadWork(id){
+  const w=findWork(id);if(!w)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([w.fullText||w.preview],{type:'text/plain;charset=utf-8'}));
+  a.download=`${w.title||'뮤지컬'}_${w.student}.txt`;a.click();
+}
+
+function renderStudent(){
+  root.innerHTML=`<div class="app-header"><div class="header-inner">
+    <div class="logo-t">🎭 뮤지컬메이커</div>
+    <div class="header-right"><span class="mode-badge badge-student">STUDENT</span><button class="logout-btn" onclick="studentLogout()">나가기</button></div>
+  </div></div><main id="student-main" class="fade-in"></main>`;
+  renderStudentInput();
+}
+
+function renderStudentLogin(){
+  root.innerHTML=`<div class="login-wrap fade-in"><div class="login-box">
+    <div class="login-logo">🎭 EAIM 음악미디어</div><div class="login-sub">학생 입장</div>
+    ${!settings.classOn?`<div class="notice-box"><div style="font-size:1.5rem;margin-bottom:4px">🔒</div><div style="font-size:.82rem;color:#fca5a5">선생님이 아직 수업을 열지 않았어요</div></div>`:''}
+    <div class="field-label">이름</div>
+    <input class="t-input" type="text" id="sname-input" placeholder="이름 입력" onkeydown="if(event.key==='Enter')doStudentLogin()">
+    <div class="err-msg" id="login-err"></div>
+    <button class="main-btn" onclick="doStudentLogin()" ${!settings.classOn?'disabled':''}>입장하기</button>
+  </div></div>`;
+}
+
+function doStudentLogin(){
+  const err=document.getElementById('login-err');
+  const name=document.getElementById('sname-input')?.value.trim();
+  if(!name){err.textContent='이름을 입력해주세요';return;}
+  if(!settings.classOn){err.textContent='선생님이 수업을 열지 않았어요';return;}
+  studentName=name;session='student';LS.set(SESSION,'student');
+  render();
+}
+
+function renderStudentInput(){
+  const main=document.getElementById('student-main');if(!main)return;
+  main.innerHTML=`<div class="card"><div class="card-title">✦ 뮤지컬 만들기</div>
+    <div style="margin-bottom:16px"><div class="edit-label">주제 / 이야기 *</div>
+      <textarea class="edit-box" id="theme" rows="3" placeholder="예: 우정&#10;또는: 전학 온 아이가 음악을 통해 친구들과 하나가 되는 이야기"></textarea></div>
+    <div style="margin-bottom:16px"><div class="edit-label">장르 * — 배경 → 분위기 순서로 선택</div>
+      <div class="genre-step"><div class="genre-step-lbl"><span class="step-badge sb1">1</span>배경 장르</div>
+        <div class="genre-tags">${BG_GENRES.map(g=>`<div class="gtag" onclick="selBg(this,'${g}')">${g}</div>`).join('')}</div></div>
+      <div class="genre-step" id="mood-step" style="opacity:.35;pointer-events:none">
+        <div class="genre-step-lbl"><span class="step-badge sb2">2</span>분위기 장르</div>
+        <div class="genre-tags">${MOOD_GENRES.map(g=>`<div class="gtag" onclick="selMood(this,'${g}')">${g}</div>`).join('')}</div></div>
+      <div class="genre-summary" id="genre-sum"><span>✅</span><span id="genre-sum-txt"></span>
+        <button onclick="resetGenre()" style="margin-left:auto;background:none;border:none;color:var(--sub);cursor:pointer;font-size:.72rem">다시선택</button></div></div>
+    <div class="row2" style="margin-bottom:16px">
+      <div><div class="edit-label">등장인물 수 *</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="counter-wrap">
+            <button class="c-btn" onclick="changeCast(-1)">−</button>
+            <div class="c-val" id="cast-v">${castCount}</div>
+            <button class="c-btn" onclick="changeCast(1)">+</button>
+          </div><span style="font-size:.8rem;color:var(--sub)">명</span></div>
+        <div style="font-size:.68rem;color:rgba(255,255,255,.2);margin-top:6px">AI가 이름·역할 자동 창작</div></div>
+      <div><div class="edit-label">막 수 *</div>
+        <div class="act-btns">${DURATIONS.map(d=>`<button class="act-btn ${actCount===d.id?'on':''}" onclick="selAct(this,${d.id})">${d.label}</button>`).join('')}</div></div>
+    </div>
+    <div style="margin-bottom:16px"><div class="edit-label">배경 시간/장소 (선택)</div>
+      <input class="edit-box" type="text" id="setting" placeholder="예: 현대 중학교, 봄학기" style="min-height:auto;resize:none;"></div>
+    <div class="err-msg" id="s-err"></div>
+    <button class="gen-btn" id="gen-btn" onclick="startGenerate()">✨ 뮤지컬 전체 생성</button>
+  </div>`;
+}
+
+function selBg(el,g){document.querySelectorAll('.gtag').forEach(t=>t.classList.remove('on-bg'));el.classList.add('on-bg');bgGenre=g;document.getElementById('mood-step').style.opacity='1';document.getElementById('mood-step').style.pointerEvents='auto';updateGenreSummary();}
+function selMood(el,g){document.querySelectorAll('#mood-step .gtag').forEach(t=>t.classList.remove('on-mood'));el.classList.add('on-mood');moodGenre=g;updateGenreSummary();}
+function updateGenreSummary(){const sum=document.getElementById('genre-sum'),txt=document.getElementById('genre-sum-txt');if(bgGenre&&moodGenre&&sum&&txt){sum.classList.add('show');txt.textContent=`${bgGenre} + ${moodGenre}`;}}
+function resetGenre(){bgGenre='';moodGenre='';document.querySelectorAll('.gtag').forEach(t=>t.classList.remove('on-bg','on-mood'));document.getElementById('mood-step').style.opacity='.35';document.getElementById('mood-step').style.pointerEvents='none';document.getElementById('genre-sum').classList.remove('show');}
+function changeCast(d){castCount=Math.min(20,Math.max(2,castCount+d));const el=document.getElementById('cast-v');if(el)el.textContent=castCount;}
+function selAct(el,n){document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');actCount=n;}
+
+async function callGemini(prompt){
+  const key=settings.apiKey;
+  if(!key)throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key.trim()}`;
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:4000}})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`오류 ${res.status}`);}
+  const data=await res.json();return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+}
+function parseJSON(text){const c=text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();return JSON.parse(c);}
+
+async function startGenerate(){
+  const theme=document.getElementById('theme')?.value.trim(),setting=document.getElementById('setting')?.value.trim()||'현대',err=document.getElementById('s-err');
+  if(!theme){err.textContent='주제를 입력해주세요!';return;}
+  if(!bgGenre){err.textContent='배경 장르를 선택해주세요!';return;}
+  if(!moodGenre){err.textContent='분위기 장르를 선택해주세요!';return;}
+  err.textContent='';
+  const genre=`${bgGenre} + ${moodGenre}`;
+  const main=document.getElementById('student-main');
+  main.innerHTML=`<div class="prog-card show">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:4px">🎭 뮤지컬을 만들고 있어요...</div>
+    <div style="font-size:.72rem;color:var(--sub);margin-bottom:0">잠시만 기다려주세요</div>
+    <div class="prog-steps">
+      <div class="prog-step" id="ps-1"><span class="sicon">🎬</span>제목 & 전체 구성 설계</div>
+      <div class="prog-step" id="ps-2"><span class="sicon">🌅</span>오프닝 코러스 작성</div>
+      <div class="prog-step" id="ps-3"><span class="sicon">🎭</span>각 막 장면 작성</div>
+      <div class="prog-step" id="ps-4"><span class="sicon">🎪</span>커튼콜 작성</div>
+      <div class="prog-step" id="ps-5"><span class="sicon">🎵</span>Suno & 이미지 프롬프트 완성</div>
+    </div>
+    <div id="prog-msg" style="font-size:.72rem;color:var(--sub);margin-top:8px"></div>
+  </div>`;
+  const setStep=(n,msg='')=>{
+    for(let i=1;i<=5;i++){const el=document.getElementById(`ps-${i}`);if(!el)return;
+      if(i<n){el.className='prog-step done';el.querySelector('.sicon').textContent='✓';}
+      else if(i===n){el.className='prog-step active';}else{el.className='prog-step';}}
+    const pm=document.getElementById('prog-msg');if(pm)pm.textContent=msg;
+  };
+  try{
+    setStep(1,'전체 구성 설계 중...');
+    const s1=await callGemini(`창작 뮤지컬 작가로서 아래 정보로 전체 구조를 설계하세요.
+주제: ${theme} | 장르: ${genre} | 등장인물: ${castCount}명 | 배경: ${setting} | 막 수: ${actCount}
+JSON만 응답:
+{"title":"뮤지컬 제목","characters":["이름(역할)" ${castCount}명 배열],"synopsis":"줄거리 2-3문장","acts":[{"actNum":1,"title":"막제목","summary":"내용 1문장","emotion":"감정"}]}`);
+    const struct=parseJSON(s1),charsStr=struct.characters.join(', ');
+    setStep(2,'오프닝 코러스 작성 중...');
+    const s2=await callGemini(`뮤지컬 "${struct.title}" 오프닝 코러스.
+줄거리:${struct.synopsis} | 인물:${charsStr} | 장르:${genre}
+JSON만:{"songTitle":"넘버제목","lyrics":"가사 4-6줄(줄바꿈)","sunoPrompt":"영문 Suno 프롬프트(50단어이내)","bgPrompt":"영문 배경이미지 프롬프트, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
+    const opening=parseJSON(s2);
+    setStep(3,'장면 작성 중...');
+    const scenes=[];
+    for(const act of struct.acts){
+      setStep(3,`${act.actNum}막 "${act.title}" 작성 중...`);
+      const sn=await callGemini(`뮤지컬 "${struct.title}" ${act.actNum}막.
+내용:${act.summary} | 감정:${act.emotion} | 인물:${charsStr}
+JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","lyrics":"가사 4-6줄","characters":"등장인물","sunoPrompt":"영문 Suno(50단어이내)","bgPrompt":"영문 배경이미지, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","emotion":"${act.emotion}","mood":"분위기 한국어"}`);
+      scenes.push(parseJSON(sn));
+    }
+    setStep(4,'커튼콜 작성 중...');
+    const s4=await callGemini(`뮤지컬 "${struct.title}" 커튼콜.
+오프닝가사:${opening.lyrics} | 줄거리:${struct.synopsis}
+JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
+    const curtain=parseJSON(s4);
+    setStep(5,'완성 정리 중...');
+    generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain};
+    LS.set(DRAFT_KEY,generatedData);saveWork(generatedData);
+    await new Promise(r=>setTimeout(r,500));renderResult();
+  }catch(e){
+    main.innerHTML=`<div class="card" style="text-align:center;padding:32px">
+      <div style="font-size:1.2rem;color:#fca5a5;margin-bottom:12px">⚠️ 생성 실패</div>
+      <div style="font-size:.82rem;color:var(--sub);margin-bottom:20px">${e.message}</div>
+      <button class="btn-sec" onclick="renderStudentInput()">← 돌아가기</button></div>`;
+  }
+}
+
+function saveWork(d){
+  const fullText=buildFullText(d);
+  const newId = firebaseReady ? worksCol(teacherUid).doc().id : String(Date.now());
+  const work={id:newId,student:studentName||'익명',title:d.title,genre:d.genre,acts:actCount,cast:castCount,
+    time:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    approved:false,preview:`${d.synopsis}\n\n♪ ${d.opening.songTitle}\n${d.opening.lyrics}`,fullText};
+  works=[work,...works];LS.set(WORKS_CACHE,works);
+  if(firebaseReady){
+    const {id, ...fields} = work;
+    worksCol(teacherUid).doc(newId).set({...fields, createdAt:firebase.firestore.FieldValue.serverTimestamp()})
+      .catch(e=>showToast('❌ 결과물 클라우드 저장 실패: '+e.message));
+  }
+}
+
+function buildFullText(d){
+  if(!d)return'';
+  let t=`${'═'.repeat(48)}\n  ${(d.title||'').toUpperCase()}\n  ${d.genre}\n${'═'.repeat(48)}\n\n`;
+  t+=`📖 줄거리\n${d.synopsis}\n\n👥 등장인물\n  ${(d.characters||[]).join('\n  ')}\n\n`;
+  t+=`【 오프닝 코러스 】\n${'─'.repeat(36)}\n♪ ${d.opening.songTitle}\n\n${d.opening.lyrics}\n\n[Suno] ${d.opening.sunoPrompt}\n[BG] ${d.opening.bgPrompt}\n\n`;
+  (d.scenes||[]).forEach((s,i)=>{t+=`【 ${i+1}막: ${s.sceneTitle} 】\n${'─'.repeat(36)}\n등장: ${s.characters}\n♪ ${s.songTitle}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;});
+  t+=`【 커튼콜 】\n${'─'.repeat(36)}\n♪ ${d.curtain.songTitle}\n\n${d.curtain.lyrics}\n\n[Suno] ${d.curtain.sunoPrompt}\n[BG] ${d.curtain.bgPrompt}`;
+  return t;
+}
+
+function renderResult(){
+  const main=document.getElementById('student-main');if(!main||!generatedData)return;
+  const d=generatedData;
+  main.innerHTML=`<div class="save-bar"><div class="save-status"><div class="save-dot"></div>자동저장 완료</div>
+    <div style="font-size:.68rem;color:var(--sub)">수정하면 자동으로 저장됩니다</div></div>
+  <div class="r-header">
+    <div style="font-size:.62rem;color:var(--sub);letter-spacing:.25em;margin-bottom:6px">✦ EAIM MUSICAL ✦</div>
+    <div class="r-title">${d.title}</div>
+    <div class="r-sub">${d.genre} · ${actCount}막 · 등장인물 ${castCount}명</div>
+  </div>
+  <div class="card" style="margin-bottom:14px"><div class="card-title" style="margin-bottom:10px">👥 등장인물</div>
+    <div style="font-size:.82rem;color:rgba(255,255,255,.6);line-height:2">${(d.characters||[]).map(c=>`• ${c}`).join('<br>')}</div></div>
+  ${renderSceneCard('opening','오프닝 코러스','tag-opening','🌅',d.opening,-1)}
+  ${(d.scenes||[]).map((s,i)=>renderSceneCard(`scene-${i}`,`${i+1}막 — ${s.sceneTitle}`,'tag-scene','🎬',s,i)).join('')}
+  ${renderSceneCard('curtain','커튼콜','tag-curtain','🎭',d.curtain,-2)}
+  <div class="btn-row">
+    <button class="btn-sec" onclick="renderStudentInput()">↩ 새로 만들기</button>
+    <button class="btn-regen" onclick="startGenerate()">🔄 재생성</button>
+    <button class="btn-dl" onclick="downloadAll()">📥 다운로드</button>
+    <button class="btn-slide" onclick="launchSlideshow()">🎬 슬라이드쇼</button>
+  </div>`;
+  main.querySelectorAll('textarea, .prompt-text').forEach(el=>{el.addEventListener('input',()=>{scheduleAutoSave();});});
+}
+
+function renderSceneCard(id,label,tagClass,icon,data,idx){
+  return `<div class="scene-card">
+    <div class="scene-header open" onclick="toggleScene('${id}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="scene-tag ${tagClass}">${icon} ${label}</span>
+        <span style="font-size:.85rem;font-weight:700;color:var(--text)">♪ ${data.songTitle||''}</span>
+      </div>
+      <span style="color:rgba(255,255,255,.25);font-size:.72rem" id="arr-${id}">▲</span>
+    </div>
+    <div class="scene-body" id="body-${id}">
+      <div class="edit-label">가사</div>
+      <textarea class="edit-box" id="lyrics-${id}" rows="6">${data.lyrics||''}</textarea>
+      <div class="prompt-grid">
+        <div class="prompt-box">
+          <div class="prompt-label">🎵 Suno 프롬프트 <button class="w-btn" style="float:right;margin-top:-2px" onclick="copyEl('suno-${id}')">복사</button></div>
+          <textarea class="prompt-text" id="suno-${id}" rows="3">${data.sunoPrompt||''}</textarea>
+        </div>
+        <div class="prompt-box">
+          <div class="prompt-label">🖼 배경 프롬프트 <button class="w-btn" style="float:right;margin-top:-2px" onclick="copyEl('bg-${id}')">복사</button></div>
+          <textarea class="prompt-text" id="bg-${id}" rows="3">${data.bgPrompt||''}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleScene(id){
+  const body=document.getElementById(`body-${id}`),arr=document.getElementById(`arr-${id}`);if(!body)return;
+  const isOpen=body.style.display!=='none';body.style.display=isOpen?'none':'block';if(arr)arr.textContent=isOpen?'▼':'▲';
+}
+
+function scheduleAutoSave(){
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>{
+    collectEdits();LS.set(DRAFT_KEY,generatedData);
+    const last=works[0];
+    if(last){
+      last.fullText=buildFullText(generatedData);
+      last.preview=`${generatedData.synopsis}\n\n♪ ${generatedData.opening.songTitle}\n${generatedData.opening.lyrics}`;
+      LS.set(WORKS_CACHE,works);
+      if(firebaseReady && last.id){
+        worksCol(teacherUid).doc(String(last.id)).set({fullText:last.fullText, preview:last.preview},{merge:true})
+          .catch(e=>console.warn('자동저장 클라우드 반영 실패', e));
+      }
+    }
+    showToast('💾 자동저장 완료');
+  },1500);
+}
+
+function collectEdits(){
+  if(!generatedData)return;
+  const getVal=id=>document.getElementById(id)?.value||'';
+  generatedData.opening.lyrics=getVal('lyrics-opening');generatedData.opening.sunoPrompt=getVal('suno-opening');generatedData.opening.bgPrompt=getVal('bg-opening');
+  (generatedData.scenes||[]).forEach((_,i)=>{generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);});
+  generatedData.curtain.lyrics=getVal('lyrics-curtain');generatedData.curtain.sunoPrompt=getVal('suno-curtain');generatedData.curtain.bgPrompt=getVal('bg-curtain');
+}
+
+function downloadAll(){
+  collectEdits();const text=buildFullText(generatedData);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
+  a.download=`${generatedData?.title||'뮤지컬'}_${studentName||'학생'}.txt`;a.click();
+}
+
+function launchSlideshow(){
+  collectEdits();const d=generatedData;if(!d)return;
+  const scenes=[
+    {type:'opening',title:'오프닝 코러스',songTitle:d.opening.songTitle,lyrics:d.opening.lyrics,imagePrompt:d.opening.bgPrompt,characters:(d.characters||[]).join(', '),emotion:'설렘',musicMood:d.opening.mood},
+    ...(d.scenes||[]).map(s=>({title:s.sceneTitle,songTitle:s.songTitle,lyrics:s.lyrics,imagePrompt:s.bgPrompt,characters:s.characters,emotion:s.emotion,musicMood:s.mood})),
+  ];
+  localStorage.setItem('eaim_musical_data',JSON.stringify({
+    title:d.title, scenes,
+    curtainSongTitle:d.curtain.songTitle,
+    curtainLyrics:d.curtain.lyrics,
+    curtainBgPrompt:d.curtain.bgPrompt,
+    credits:[]
+  }));
+  window.open('slideshow.html','_blank');
+  showToast('🎬 슬라이드쇼로 전송!');
+}
+
+function copyEl(id){const el=document.getElementById(id);if(!el)return;navigator.clipboard.writeText(el.value||el.textContent).then(()=>showToast('✅ 복사됨!'));}
+let toastT;
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>{el.style.display='none';},2000);}
+
+(function(){
+  const params=new URLSearchParams(window.location.search);
+  const role=params.get('role');
+  const teacherParam=params.get('teacher');
+  renderLoading();
+
+  if(role==='student'){
+    isStudentMode=true;
+    if(!teacherParam){ authLoaded=true; renderNoTeacherLink(); return; }
+    teacherUid=teacherParam;
+    authLoaded=true;
+    subscribeSettings(teacherUid, ()=>{
+      if(LS.get(SESSION)==='student'){ session='student'; }else{ session=null; }
+      render();
+    });
+    return;
+  }
+
+  // 기본: 교사 로그인 플로우
+  initAuth(()=>{
+    if(currentUser){
+      teacherUid=currentUser.uid;
+      session='teacher';LS.set(SESSION,'teacher');
+      subscribeSettings(teacherUid, render);
+      subscribeWorks(teacherUid);
+    }else{
+      session=null;
+      render();
+    }
+  });
+})();
+</script>
+</body>
+</html>
